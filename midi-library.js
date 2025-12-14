@@ -65,11 +65,12 @@ export class MidiLibrary {
                 this.midis = data;
             } else if (data && Array.isArray(data.data)) {
                 this.midis = data.data;
+            } else if (data && typeof data === 'object') {
+                // API returns a dictionary of midis (id -> object)
+                this.midis = Object.values(data);
             } else {
                 console.warn('Unexpected API response structure:', data);
-                // Attempt to find any array property
-                const possibleArray = data ? Object.values(data).find(val => Array.isArray(val)) : null;
-                this.midis = possibleArray || [];
+                this.midis = [];
             }
             
             this.renderList(this.midis);
