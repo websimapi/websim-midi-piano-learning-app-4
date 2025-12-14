@@ -13,11 +13,26 @@ export class MidiLoader {
             } else {
                 this.rawMidiBuffer = await fileOrBuffer.arrayBuffer();
             }
+
+            // Verify header (Standard MIDI files start with MThd)
+            const header = new Uint8Array(this.rawMidiBuffer, 0, 4);
+            const headerStr = String.fromCharCode(...header);
+            
+            if (headerStr !== 'MThd') {
+                // If it's not a MIDI file (e.g., HTML error page), decode text for debugging
+                const decoder = new TextDecoder();
+                const preview = decoder.decode(this.rawMidiBuffer.slice(0, 200));
+                console.error('Invalid MIDI Header. Expected "MThd", got:', headerStr);
+                console.error('Content preview:', preview);
+                throw new Error(`Bad MIDI file. Expected 'MThd', got: '${headerStr}'. Content preview: ${preview.substring(0, 50)}...`);
+            }
+
             this.applyTimeOffset(timeOffset);
             console.log(`MIDI loaded and shifted by ${timeOffset}s:`, this.midiData);
             return true;
         } catch (error) {
             console.error('Error loading MIDI:', error);
+            alert('Error loading MIDI: ' + error.message);
             this.rawMidiBuffer = null; // Clear on error
             return false;
         }

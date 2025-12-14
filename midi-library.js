@@ -141,9 +141,20 @@ export class MidiLibrary {
         
         try {
             const url = `https://midishare.dev/api/midi?id=${midiData.id}&format=mid`;
-            // Use corsproxy.io to bypass CORS restrictions for the file download
-            const response = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
-            if (!response.ok) throw new Error('Download failed');
+            console.log('Downloading MIDI from:', url);
+
+            let response;
+            try {
+                // Try direct fetch first (API might support CORS)
+                response = await fetch(url);
+                if (!response.ok) throw new Error('Direct fetch status: ' + response.status);
+            } catch (err) {
+                console.warn('Direct fetch failed, attempting proxy...', err);
+                // Fallback to proxy if direct fetch fails (CORS or network error)
+                response = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
+            }
+            
+            if (!response.ok) throw new Error(`Download failed: ${response.status} ${response.statusText}`);
             
             const arrayBuffer = await response.arrayBuffer();
             
