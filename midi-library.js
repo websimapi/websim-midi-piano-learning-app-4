@@ -56,8 +56,8 @@ export class MidiLibrary {
         this.list.innerHTML = '<div style="text-align:center; padding: 40px; color: #888;">Loading library...</div>';
         
         try {
-            // Use corsproxy.io to bypass CORS restrictions for the API listing
-            const response = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://midishare.dev/api/midis'));
+            // Use api.allorigins.win to bypass CORS restrictions for the API listing
+            const response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://midishare.dev/api/midis'));
             if (!response.ok) throw new Error('Network error');
             const data = await response.json();
             
@@ -151,7 +151,7 @@ export class MidiLibrary {
             } catch (err) {
                 console.warn('Direct fetch failed, attempting proxy...', err);
                 // Fallback to proxy if direct fetch fails (CORS or network error)
-                response = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
+                response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url));
             }
             
             if (!response.ok) throw new Error(`Download failed: ${response.status} ${response.statusText}`);
