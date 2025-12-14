@@ -4,7 +4,7 @@ export class MidiLibrary {
         this.midis = [];
         this.isOpen = false;
         this.isLoading = false;
-        this.corsProxy = 'https://corsproxy.io/?';
+        this.corsProxy = 'https://api.allorigins.win/raw?url=';
         
         this.modal = document.getElementById('midi-library-modal');
         this.list = document.getElementById('midi-library-list');
@@ -62,7 +62,9 @@ export class MidiLibrary {
         this.list.innerHTML = '<div style="text-align:center; padding: 40px; color: #888;">Loading library...</div>';
         
         try {
-            const response = await fetch('https://midishare.dev/api/midis');
+            const targetUrl = 'https://midishare.dev/api/midis';
+            const proxyUrl = `${this.corsProxy}${encodeURIComponent(targetUrl)}`;
+            const response = await fetch(proxyUrl);
             if (!response.ok) throw new Error('Network error');
             const data = await response.json();
             
@@ -149,7 +151,12 @@ export class MidiLibrary {
             const proxyUrl = `${this.corsProxy}${encodeURIComponent(targetUrl)}`;
             
             const response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error('Download failed');
+            if (!response.ok) throw new Error(`Download failed: ${response.status}`);
+            
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('text/html')) {
+                throw new Error('Proxy returned HTML instead of MIDI. The file might be unavailable.');
+            }
             
             const arrayBuffer = await response.arrayBuffer();
             
