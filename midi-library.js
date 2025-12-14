@@ -50,15 +50,41 @@ export class MidiLibrary {
         this.modal.classList.add('hidden');
         this.isOpen = false;
     }
+
+    async fetchWithFallback(url) {
+        // Strategy: Try Direct -> corsproxy.io -> allorigins.win -> thingproxy
+        // We try direct first in case CORS is enabled, then fall back to proxies.
+        const attempts = [
+            { name: 'Direct', getUrl: (u) => u },
+            { name: 'CorsProxy', getUrl: (u) => `https://corsproxy.io/?${encodeURIComponent(u)}` },
+            { name: 'AllOrigins', getUrl: (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}` },
+            { name: 'ThingProxy', getUrl: (u) => `https://thingproxy.freeboard.io/fetch/${u}` }
+        ];
+
+        let lastError;
+        for (const attempt of attempts) {
+            try {
+                const fetchUrl = attempt.getUrl(url);
+                const response = await fetch(fetchUrl);
+                if (response.ok) {
+                    return response;
+                }
+                console.warn(`${attempt.name} fetch failed: ${response.status}`);
+            } catch (err) {
+                console.warn(`${attempt.name} fetch error:`, err);
+                lastError = err;
+            }
+        }
+        throw lastError || new Error('All fetch attempts failed');
+    }
     
     async fetchLibrary() {
         this.isLoading = true;
         this.list.innerHTML = '<div style="text-align:center; padding: 40px; color: #888;">Loading library...</div>';
         
         try {
-            // Use api.allorigins.win to bypass CORS restrictions for the API listing
-            const response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://midishare.dev/api/midis'));
-            if (!response.ok) throw new Error('Network error');
+            const response = await this.fetchWithFallback('https://midishare.dev/api/midis');
+            if (!response.ok) throw new Error('Network error: ' + response.status);
             const data = await response.json();
             
             // Handle potentially wrapped response (e.g. { data: [...] } or just [...])
@@ -143,17 +169,7 @@ export class MidiLibrary {
             const url = `https://midishare.dev/api/midi?id=${midiData.id}&format=mid`;
             console.log('Downloading MIDI from:', url);
 
-            let response;
-            try {
-                // Try direct fetch first (API might support CORS)
-                response = await fetch(url);
-                if (!response.ok) throw new Error('Direct fetch status: ' + response.status);
-            } catch (err) {
-                console.warn('Direct fetch failed, attempting proxy...', err);
-                // Fallback to proxy if direct fetch fails (CORS or network error)
-                response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url));
-            }
-            
+            const response = await this.fetchWithFallback(url);
             if (!response.ok) throw new Error(`Download failed: ${response.status} ${response.statusText}`);
             
             const arrayBuffer = await response.arrayBuffer();
