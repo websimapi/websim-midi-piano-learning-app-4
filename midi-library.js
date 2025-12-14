@@ -4,12 +4,18 @@ export class MidiLibrary {
         this.midis = [];
         this.isOpen = false;
         this.isLoading = false;
+        this.corsProxy = 'https://corsproxy.io/?';
         
         this.modal = document.getElementById('midi-library-modal');
         this.list = document.getElementById('midi-library-list');
         this.searchInput = document.getElementById('midi-library-search');
         this.closeBtn = document.getElementById('midi-library-close');
         this.openBtn = document.getElementById('open-library-btn');
+        this.proxyIndicator = document.getElementById('proxy-indicator');
+        
+        if (this.proxyIndicator) {
+            this.proxyIndicator.textContent = `Proxy: ${this.corsProxy}`;
+        }
         
         this.setupListeners();
     }
@@ -139,7 +145,10 @@ export class MidiLibrary {
         btnElement.disabled = true;
         
         try {
-            const response = await fetch(`https://midishare.dev/api/midi?id=${midiData.id}&format=mid`);
+            const targetUrl = `https://midishare.dev/api/midi?id=${midiData.id}&format=mid`;
+            const proxyUrl = `${this.corsProxy}${encodeURIComponent(targetUrl)}`;
+            
+            const response = await fetch(proxyUrl);
             if (!response.ok) throw new Error('Download failed');
             
             const arrayBuffer = await response.arrayBuffer();
