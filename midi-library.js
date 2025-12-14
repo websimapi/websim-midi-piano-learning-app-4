@@ -58,7 +58,20 @@ export class MidiLibrary {
         try {
             const response = await fetch('https://midishare.dev/api/midis');
             if (!response.ok) throw new Error('Network error');
-            this.midis = await response.json();
+            const data = await response.json();
+            
+            // Handle potentially wrapped response (e.g. { data: [...] } or just [...])
+            if (Array.isArray(data)) {
+                this.midis = data;
+            } else if (data && Array.isArray(data.data)) {
+                this.midis = data.data;
+            } else {
+                console.warn('Unexpected API response structure:', data);
+                // Attempt to find any array property
+                const possibleArray = data ? Object.values(data).find(val => Array.isArray(val)) : null;
+                this.midis = possibleArray || [];
+            }
+            
             this.renderList(this.midis);
         } catch (error) {
             console.error('Error fetching MIDI library:', error);
@@ -70,7 +83,7 @@ export class MidiLibrary {
     
     renderList(items) {
         this.list.innerHTML = '';
-        if (items.length === 0) {
+        if (!items || !Array.isArray(items) || items.length === 0) {
             this.list.innerHTML = '<div style="text-align:center; padding: 40px; color: #888;">No MIDI files found.</div>';
             return;
         }
